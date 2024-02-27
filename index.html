@@ -7,14 +7,18 @@
       <input id="image-input" type="file" accept="image/*" />
       <button id="button-v1">Convert v1</button>
       <button id="button-v2">Convert v2</button>
-      <canvas id="canvas" width="128" height="128"></canvas>
     </div>
+    <canvas id="canvas"></canvas>
     <script>
       const imageInput = document.getElementById('image-input');
       const canvas = document.getElementById('canvas');
       const buttonV1 = document.querySelector('#button-v1');
       const buttonV2 = document.querySelector('#button-v2');
       const ctx = canvas.getContext('2d');
+      const width = 480;
+      const height = 648;
+      canvas.width = width;
+      canvas.height = height;
 
       imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -23,19 +27,19 @@
           const img = new Image();
           img.src = e.target.result;
           img.onload = () => {
-            ctx.drawImage(img, 0, 0, 128, 128);
+            ctx.drawImage(img, 0, 0, width, height);
           };
         };
         reader.readAsDataURL(file);
       });
 
       buttonV1.addEventListener('click', () => {
-        const newImageData = fsdGrayscale(ctx.getImageData(0, 0, 128, 128));
+        const newImageData = fsdGrayscale(ctx.getImageData(0, 0, width, height));
         ctx.putImageData(newImageData, 0, 0);
       });
 
       buttonV2.addEventListener('click', () => {
-        const newImageData = fsdGrayscale_v2(ctx.getImageData(0, 0, 128, 128));
+        const newImageData = fsdGrayscale_v2(ctx.getImageData(0, 0, width, height));
         ctx.putImageData(newImageData, 0, 0);
         const lines = [];
         const list = [];
