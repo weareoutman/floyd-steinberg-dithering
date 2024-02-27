@@ -12,7 +12,7 @@
  * @param {ImageData} imageData
  * @param {number} bits
  */
-export function fsdGrayscale(imageData, bits = 1) {
+function fsdGrayscale(imageData, bits = 1) {
   const width = imageData.width;
   const height = imageData.height;
   const grayscalePixels = new Uint8Array(width * height);
@@ -78,7 +78,7 @@ export function fsdGrayscale(imageData, bits = 1) {
  * @param {ImageData} imageData
  * @param {number} bits
  */
-export function fsdGrayscale_v2(imageData, bits = 1) {
+function fsdGrayscale_v2(imageData, bits = 1) {
   const width = imageData.width;
   const height = imageData.height;
   const newImageData = new ImageData(width, height);
@@ -137,6 +137,7 @@ function findClosestLuma(luma, bits = 8) {
 
 function getLumaByRGBA(rgb) {
     const [r, g, b, a] = rgb;
+    // https://en.wikipedia.org/wiki/Grayscale
     return (0.299 * r + 0.587 * g + 0.114 * b) * a / 255;
 }
 

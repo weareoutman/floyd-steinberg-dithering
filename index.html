@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <script src="./main.js"></script>
+  </head>
+  <body>
+    <div style="display:flex;flex-direction:column;width:128px">
+      <input id="image-input" type="file" accept="image/*" />
+      <button id="button-v1">Convert v1</button>
+      <button id="button-v2">Convert v2</button>
+      <canvas id="canvas" width="128" height="128"></canvas>
+    </div>
+    <script>
+      const imageInput = document.getElementById('image-input');
+      const canvas = document.getElementById('canvas');
+      const buttonV1 = document.querySelector('#button-v1');
+      const buttonV2 = document.querySelector('#button-v2');
+      const ctx = canvas.getContext('2d');
+
+      imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0, 128, 128);
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+
+      buttonV1.addEventListener('click', () => {
+        const newImageData = fsdGrayscale(ctx.getImageData(0, 0, 128, 128));
+        ctx.putImageData(newImageData, 0, 0);
+      });
+
+      buttonV2.addEventListener('click', () => {
+        const newImageData = fsdGrayscale_v2(ctx.getImageData(0, 0, 128, 128));
+        ctx.putImageData(newImageData, 0, 0);
+        const lines = [];
+        const list = [];
+        let count = 0;
+        for (let i = 0; i < newImageData.data.length; i+=32) {
+          const x = newImageData.data.slice(i, i+32).filter((v, index) => (index % 4) === 0).reduce((acc, val, index) => (acc + ((val > 127 ? 1 : 0) * 2 ** index)), 0);
+          list.push(`0x${x.toString(16).padStart(2,'0')},`);
+          count++;
+          if (count === 16) {
+            lines.push(list.join(''));
+            list.length = 0;
+            count = 0;
+          }
+        }
+        console.log(lines.join('\n'));
+      });
+    </script>
+  </body>
+</html>
