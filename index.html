@@ -10,13 +10,27 @@
     </div>
     <canvas id="canvas"></canvas>
     <script>
+      window.saveBlob = (function () {
+          var a = document.createElement("a");
+          document.body.appendChild(a);
+          a.style = "display: none";
+          return function (blob, fileName) {
+              var url = window.URL.createObjectURL(blob);
+              a.href = url;
+              a.download = fileName;
+              a.click();
+              window.URL.revokeObjectURL(url);
+          };
+      }());
+    </script>
+    <script>
       const imageInput = document.getElementById('image-input');
       const canvas = document.getElementById('canvas');
       const buttonV1 = document.querySelector('#button-v1');
       const buttonV2 = document.querySelector('#button-v2');
       const ctx = canvas.getContext('2d');
-      const width = 480;
-      const height = 648;
+      const width = 648;
+      const height = 480;
       canvas.width = width;
       canvas.height = height;
 
@@ -41,12 +55,15 @@
       buttonV2.addEventListener('click', () => {
         const newImageData = fsdGrayscale_v2(ctx.getImageData(0, 0, width, height));
         ctx.putImageData(newImageData, 0, 0);
+
         const lines = [];
         const list = [];
         let count = 0;
+        const bytes = [];
         for (let i = 0; i < newImageData.data.length; i+=32) {
           const x = newImageData.data.slice(i, i+32).filter((v, index) => (index % 4) === 0).reduce((acc, val, index) => (acc + ((val > 127 ? 1 : 0) * 2 ** index)), 0);
           list.push(`0x${x.toString(16).padStart(2,'0')},`);
+          bytes.push(255 - x);
           count++;
           if (count === 16) {
             lines.push(list.join(''));
@@ -54,7 +71,16 @@
             count = 0;
           }
         }
+
+
+        const blob = new Blob([Uint8Array.from(bytes)], { type: 'application/octet-stream' });
+        window.saveBlob(blob, 'bmp');
+
+
         console.log(lines.join('\n'));
+
+        console.log(blob.size);
+        console.log(bytes.length);
       });
     </script>
   </body>
