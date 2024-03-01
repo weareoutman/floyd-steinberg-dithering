@@ -3,7 +3,7 @@
     <script src="./main.js"></script>
   </head>
   <body>
-    <div style="display:flex;flex-direction:column;width:128px">
+    <div style="display: flex; flex-direction: column; width: 128px">
       <input id="image-input" type="file" accept="image/*" />
       <button id="button-v1">Convert v1</button>
       <button id="button-v2">Convert v2</button>
@@ -11,30 +11,30 @@
     <canvas id="canvas"></canvas>
     <script>
       window.saveBlob = (function () {
-          var a = document.createElement("a");
-          document.body.appendChild(a);
-          a.style = "display: none";
-          return function (blob, fileName) {
-              var url = window.URL.createObjectURL(blob);
-              a.href = url;
-              a.download = fileName;
-              a.click();
-              window.URL.revokeObjectURL(url);
-          };
-      }());
+        var a = document.createElement("a");
+        document.body.appendChild(a);
+        a.style = "display: none";
+        return function (blob, fileName) {
+          var url = window.URL.createObjectURL(blob);
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        };
+      })();
     </script>
     <script>
-      const imageInput = document.getElementById('image-input');
-      const canvas = document.getElementById('canvas');
-      const buttonV1 = document.querySelector('#button-v1');
-      const buttonV2 = document.querySelector('#button-v2');
-      const ctx = canvas.getContext('2d');
-      const width = 648;
-      const height = 480;
+      const imageInput = document.getElementById("image-input");
+      const canvas = document.getElementById("canvas");
+      const buttonV1 = document.querySelector("#button-v1");
+      const buttonV2 = document.querySelector("#button-v2");
+      const ctx = canvas.getContext("2d");
+      const width = 480;
+      const height = 648;
       canvas.width = width;
       canvas.height = height;
 
-      imageInput.addEventListener('change', (e) => {
+      imageInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -47,37 +47,58 @@
         reader.readAsDataURL(file);
       });
 
-      buttonV1.addEventListener('click', () => {
-        const newImageData = fsdGrayscale(ctx.getImageData(0, 0, width, height));
+      buttonV1.addEventListener("click", () => {
+        const newImageData = fsdGrayscale(
+          ctx.getImageData(0, 0, width, height)
+        );
         ctx.putImageData(newImageData, 0, 0);
       });
 
-      buttonV2.addEventListener('click', () => {
-        const newImageData = fsdGrayscale_v2(ctx.getImageData(0, 0, width, height));
+      buttonV2.addEventListener("click", () => {
+        const newImageData = fsdGrayscale_v2(
+          ctx.getImageData(0, 0, width, height)
+        );
         ctx.putImageData(newImageData, 0, 0);
 
         const lines = [];
         const list = [];
-        let count = 0;
+        let column = 0;
         const bytes = [];
-        for (let i = 0; i < newImageData.data.length; i+=32) {
-          const x = newImageData.data.slice(i, i+32).filter((v, index) => (index % 4) === 0).reduce((acc, val, index) => (acc + ((val > 127 ? 1 : 0) * 2 ** index)), 0);
-          list.push(`0x${x.toString(16).padStart(2,'0')},`);
-          bytes.push(255 - x);
-          count++;
-          if (count === 16) {
-            lines.push(list.join(''));
+        // 4 bytes per pixel
+        for (let i = 0; i < newImageData.data.length; i += 32) {
+          // Pick one pixel at a time
+          const x = newImageData.data
+            .slice(i, i + 32)
+            // Pick the first byte of each, since we only need its grayscale
+            .filter((v, index) => index % 4 === 0)
+            .reduce(
+              // Convert to 1-bit grayscale, allow only white or black
+              // 0: black, 1: white
+              (acc, val, index) => acc + (val > 127 ? 1 : 0) * 2 ** index,
+              0
+            );
+          list.push(`0x${x.toString(16).padStart(2, "0")},`);
+
+          const originalIndex = i / 32;
+          const originalX = originalIndex % width
+          const originalY = Math.floor(originalIndex / width);
+          const newIndex = originalY + originalX * height;
+          bytes[newIndex] = x;
+
+          column++;
+          if (column === 16) {
+            lines.push(list.join(""));
             list.length = 0;
-            count = 0;
+            column = 0;
           }
         }
 
+        const blob = new Blob([Uint8Array.from(bytes)], {
+          type: "application/octet-stream",
+        });
+        window.saveBlob(blob, "bmp");
 
-        const blob = new Blob([Uint8Array.from(bytes)], { type: 'application/octet-stream' });
-        window.saveBlob(blob, 'bmp');
-
-
-        console.log(lines.join('\n'));
+        console.log(lines.join("\n"));
 
         console.log(blob.size);
         console.log(bytes.length);
