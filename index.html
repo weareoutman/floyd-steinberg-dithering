@@ -29,8 +29,8 @@
       const buttonV1 = document.querySelector("#button-v1");
       const buttonV2 = document.querySelector("#button-v2");
       const ctx = canvas.getContext("2d");
-      const width = 480;
-      const height = 648;
+      const width = 648;
+      const height = 480;
       canvas.width = width;
       canvas.height = height;
 
@@ -60,30 +60,52 @@
         );
         ctx.putImageData(newImageData, 0, 0);
 
+        let typedArray = newImageData.data
+        if (width < height) {
+          const rotated = [];
+          for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+              const newY = width - 1 - x;
+              const newX = y;
+              for (let i = 0; i < 4; i++) {
+                rotated[(newY * height + newX) * 4 + i] =
+                  newImageData.data[(y * width + x) * 4 + i];
+              }
+              // rotated[newY * height + newX] = newImageData.data[y * width + x];
+            }
+          }
+          typedArray = new Uint8Array(rotated);
+        }
+
         const lines = [];
         const list = [];
         let column = 0;
         const bytes = [];
+        const w = width / 8;
+        const h = height / 8;
         // 4 bytes per pixel
-        for (let i = 0; i < newImageData.data.length; i += 32) {
-          // Pick one pixel at a time
-          const x = newImageData.data
+        for (let i = 0; i < typedArray.length; i += 32) {
+          // Pick eight pixels at a time
+          const x = typedArray
             .slice(i, i + 32)
             // Pick the first byte of each, since we only need its grayscale
             .filter((v, index) => index % 4 === 0)
             .reduce(
               // Convert to 1-bit grayscale, allow only white or black
               // 0: black, 1: white
-              (acc, val, index) => acc + (val > 127 ? 1 : 0) * 2 ** index,
+              (acc, val, index) => acc + (val > 127 ? 1 : 0) * 2 ** (7 - index),
               0
             );
           list.push(`0x${x.toString(16).padStart(2, "0")},`);
 
-          const originalIndex = i / 32;
-          const originalX = originalIndex % width
-          const originalY = Math.floor(originalIndex / width);
-          const newIndex = originalY + originalX * height;
-          bytes[newIndex] = x;
+          // const originalIndex = i / 32;
+          // const originalX = originalIndex % w
+          // const originalY = Math.floor(originalIndex / w);
+          // const newY = w - 1 - originalX;
+          // const newX = originalY;
+          // const newIndex = newX + newY * height;
+          // bytes[newIndex] = 255 - x;
+          bytes.push(255 - x);
 
           column++;
           if (column === 16) {
@@ -91,6 +113,11 @@
             list.length = 0;
             column = 0;
           }
+        }
+
+        if (bytes.length !== width * height / 8) {
+          debugger;
+          throw new Error("oops")
         }
 
         const blob = new Blob([Uint8Array.from(bytes)], {
